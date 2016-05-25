@@ -128,7 +128,7 @@ ylabel('Flujo (l/m)')
 avg_q = mean(avg_qao_beat);
 avg_p = mean(avg_pao_beat);
 
-r = avg_q/avg_p;
+r = avg_p/avg_q;
 figure
 [~, locations_max] = findpeaks(avg_pao_beat, 'minpeakheight', 0.8*max(avg_pao_beat));
 diastolic_start = get_next_min(avg_pao_beat, locations_max(1));
