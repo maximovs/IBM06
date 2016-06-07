@@ -24,6 +24,7 @@ pao = pao*0.000750061561303;%Asumo los datos en kPa
 [avg_v1_beat] = get_avg_beat(v1);
 [avg_v2_beat] = get_avg_beat(v2);
 [avg_v3_beat] = get_avg_beat(v3);
+% Normalizo las mediciones de los latidos promedio
 l = min([length(avg_dao_beat), length(avg_pao_beat), length(avg_v1_beat), length(avg_v2_beat), length(avg_v3_beat)]);
 avg_dao_beat = avg_dao_beat(1:l);
 avg_pao_beat = avg_pao_beat(1:l);
@@ -31,6 +32,7 @@ avg_v1_beat = avg_v1_beat(1:l);
 avg_v2_beat = avg_v2_beat(1:l);
 avg_v3_beat = avg_v3_beat(1:l);
 
+% Pongo en fase los latidos promedio.
 location_diff = location_min_dao - location_min_pao;
 delta_d = round(median(location_diff));
 avg_dao_beat = circshift(avg_dao_beat, delta_d);
@@ -44,24 +46,37 @@ location_diff = location_min_v3 - location_min_pao;
 delta_d = round(median(location_diff));
 avg_v3_beat = circshift(avg_v3_beat, delta_d);
 
+% Filtro los latidos promedio
 avg_pao_beat = avg_filter(5, 3, avg_pao_beat);
 avg_dao_beat = avg_filter(5, 3, avg_dao_beat);
 avg_v1_beat = avg_filter(5, 3, avg_v1_beat);
 avg_v2_beat = avg_filter(5, 3, avg_v2_beat);
 avg_v3_beat = avg_filter(5, 3, avg_v3_beat);
 
+% Imprimo los latidos promedio.
 plot_beat(avg_pao_beat, fs, 't(s)', 'Presión (mmHg)', 'Presión aórtica media');
 plot_beat(avg_dao_beat, fs, 't(s)', 'Diámetro (cm)', 'Diámetro aórtica media');
 plot_beat(avg_v1_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 1 aórtica media');
 plot_beat(avg_v2_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 2 aórtica media');
 plot_beat(avg_v3_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 3 aórtica media');
 
+%% Calculo los perfiles de velocidad en un latido promedio.
+%Se obtiene el perfil de velocidad instante a instante a lo largo del
+%latido y se lo imprime. Para ver el avance en el tiempo, se agrega una
+%pausa con la velocidad de muestreo.
 figure
 for i = 1:length(avg_v1_beat)
     [x, y] = get_perfil(i, avg_v1_beat, avg_v2_beat, avg_v3_beat, avg_dao_beat);
-    plot(x, y);
-%     pause(0.1)
+%     plot(x, y);
+%     pause(1.0/125)
 end
+
+%% Se generan matrices de diámetro en función del tiempo y velocidad en función del tiempo
+%Para cada instante se calcula la velocidad en cada parte de la arteria y
+%se la agrega a la matriz. A su vez se agrega a la matriz de diámetro el
+%tamaño de la arteria en cada momento y la separación de v1-vn en cada
+%instante.
+
 diam = zeros(length(avg_v1_beat), 5);
 velo = zeros(length(avg_v1_beat), 5);
 for i = 1:length(avg_v1_beat)
@@ -70,13 +85,26 @@ for i = 1:length(avg_v1_beat)
     velo(i, :) = y(:);
 end
 
-figure
-subplot(3,1,1)
-plot(avg_dao_beat, avg_v1_beat);
-subplot(3,1,2)
-plot(avg_dao_beat, avg_v2_beat);
-subplot(3,1,3)
-plot(avg_dao_beat, avg_v3_beat);
+%% Se genera gráfico 3D representando la velocidad y el diámetro en función del tiempo
+%Con las matrices calculadas en el punto anterior se grafica utilizando la
+%función surf.
 t = 0:1/fs:(length(avg_v1_beat)-1)/fs;
 figure
 surf(t', diam', velo');
+
+%% Se calcula en los momentos destacados una aproximación del perfil de velocidad.
+%En cada instante se obtiene el perfil de velocidad con get_perfil y a
+%partir de él se ajustan los valores utilizando polyfit con grado 2. Se
+%repite para todos los instantes importantes.
+[~, inicio_sistole] = max(avg_pao_beat);
+[~, fin_diastole] = min(avg_pao_beat);
+inicio_diastole = get_zero_point(avg_pao_beat);
+[d_min, diam_minimo] = min(avg_dao_beat);
+[d_max, diam_maximo] = max(avg_dao_beat);
+
+plot_fit(inicio_sistole, avg_v1_beat, avg_v2_beat, avg_v3_beat, avg_dao_beat);
+plot_fit(inicio_diastole, avg_v1_beat, avg_v2_beat, avg_v3_beat, avg_dao_beat);
+plot_fit(fin_diastole, avg_v1_beat, avg_v2_beat, avg_v3_beat, avg_dao_beat);
+plot_fit(diam_minimo, avg_v1_beat, avg_v2_beat, avg_v3_beat, avg_dao_beat);
+plot_fit(diam_maximo, avg_v1_beat, avg_v2_beat, avg_v3_beat, avg_dao_beat);
+
