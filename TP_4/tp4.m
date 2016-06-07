@@ -4,6 +4,7 @@
 
 [PRES,DIAM,VIA1,VIA2,VIA3,VIA4] = importfile('datos_temporalesII.txt',8, 2007);
 
+%% Se filtra y normaliza la información
 pao = avg_filter(5, 3, PRES);
 dao = avg_filter(5, 3, DIAM);
 v1 = avg_filter(5, 3, VIA1);
@@ -13,6 +14,7 @@ fs = 250;
 t = 0:1/fs:(length(pao)-1)/fs;
 pao = pao*0.000750061561303;%Asumo los datos en kPa
 
+%% Se calculan los valores de D, P y V en un latido promedio.
 [~, location_min_dao] = get_special_points(dao);
 [~, location_min_pao] = get_special_points(pao);
 [~, location_min_v1] = get_special_points(v1);
@@ -53,12 +55,12 @@ avg_v1_beat = avg_filter(5, 3, avg_v1_beat);
 avg_v2_beat = avg_filter(5, 3, avg_v2_beat);
 avg_v3_beat = avg_filter(5, 3, avg_v3_beat);
 
-% Imprimo los latidos promedio.
-plot_beat(avg_pao_beat, fs, 't(s)', 'Presión (mmHg)', 'Presión aórtica media');
-plot_beat(avg_dao_beat, fs, 't(s)', 'Diámetro (cm)', 'Diámetro aórtica media');
-plot_beat(avg_v1_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 1 aórtica media');
-plot_beat(avg_v2_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 2 aórtica media');
-plot_beat(avg_v3_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 3 aórtica media');
+%% Se imprimen las señales biológicas en latido promedio.
+plot_beat(avg_pao_beat, fs, 't(s)', 'Presión (mmHg)', 'Presión aórtica');
+plot_beat(avg_dao_beat, fs, 't(s)', 'Diámetro (cm)', 'Diámetro aórtica');
+plot_beat(avg_v1_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 1 aórtica');
+plot_beat(avg_v2_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 2 aórtica');
+plot_beat(avg_v3_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 3 aórtica');
 
 %% Calculo los perfiles de velocidad en un latido promedio.
 %Se obtiene el perfil de velocidad instante a instante a lo largo del
@@ -67,14 +69,14 @@ plot_beat(avg_v3_beat, fs, 't(s)', 'Velocidad (cm/s)', 'Velocidad 3 aórtica medi
 figure
 for i = 1:length(avg_v1_beat)
     [x, y] = get_perfil(i, avg_v1_beat, avg_v2_beat, avg_v3_beat, avg_dao_beat);
-%     plot(x, y);
+    plot(x, y);
 %     pause(1.0/125)
 end
 
 %% Se generan matrices de diámetro en función del tiempo y velocidad en función del tiempo
 %Para cada instante se calcula la velocidad en cada parte de la arteria y
 %se la agrega a la matriz. A su vez se agrega a la matriz de diámetro el
-%tamaño de la arteria en cada momento y la separación de v1-vn en cada
+%tamaño de la arteria en cada momento y la separación de vn-vn+1 en cada
 %instante.
 
 diam = zeros(length(avg_v1_beat), 5);
