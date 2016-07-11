@@ -36,11 +36,6 @@ title('Flujo aórtico, flujo incidente y flujo reflejado')
 
 %% Obtener función transferencia a partir de presión central y periférica.
 
-% [PeriphSignal,CentralSignal,pp_joven2,pc_joven2] = importfile_joven2('Senales_TP_FT/Jovenes 20-29/Joven2_20a29.txt',1, 1153);
-% [PeriphSignal,CentralSignal,pp_joven1,pc_joven1] = importfile_joven1('Senales_TP_FT/Jovenes 20-29/Joven1_20a29.txt',1, 1153);
-% [PeriphSignal,CentralSignal,pp_hta2,pc_hta2] = importfile_hta2('Senales_TP_FT/Hpertensos 50-59/HTA2_50a59.txt',1, 1153);
-% [PeriphSignal,CentralSignal,pp_hta1,pc_hta1] = importfile_hta1('Senales_TP_FT/Hpertensos 50-59/HTA1_50a59.txt',1, 1153);
-% [PeriphSignal,CentralSignal,pp_adulto2,pc_adulto2] = importfile_adulto2('Senales_TP_FT/Adultos 60-69/Adulto2_60a69.txt',1, 1153);
 [pp_adulto1,pc_adulto1] = importfile_adulto1('Senales_TP_FT/Adultos 60-69/Adulto1_60a69.txt',2, 129);
 [pp_joven1,pc_joven1] = importfile_joven1('Senales_TP_FT/Jovenes 20-29/Joven1_20a29.txt',2, 104);
 [pp_adulto2,pc_adulto2] = importfile_adulto2('Senales_TP_FT/Adultos 60-69/Adulto2_60a69.txt',2, 136);
@@ -115,8 +110,8 @@ plot(abs(H_joven_1)); hold on;
 plot(abs(H_joven_2));
 title('Función transferencia de un joven respecto del otro.')
 
-% Se compara aplicar la función transferencia del joven 1 a los jóvenes 1 y
-% 2 y viceversa.
+% Se compara el resultado de aplicar la función transferencia del joven 1 a los jóvenes 1 y
+% 2 con el resultado d eaplicar la función transferencia del joven 2.
 
 PP_1 = fft(pp_joven1(1:size), size);
 PP_H_1 = PP_1.*H_joven_1;
