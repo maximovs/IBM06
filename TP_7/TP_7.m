@@ -128,6 +128,13 @@ plot(VVI, PVI, 'g');
 text(v0_i, 0,['\leftarrow V0:' num2str(v0_i)])
 title('Bucle del ventrículo izquierdo.')
 
+%% Cálculo de elastancia y compliance
+% Se calcula la elastancia en función del tiempo utilizando V0 calculado
+% anteriormente. Luego se invierte la elastancia para calcular la
+% compliance y, en los casos que la elastancia se acerca a 0, se limita el
+% valor máximo de la compliance. Esto se realiza, una vez calculada la
+% compliance, cortando todos los valores que superan en 10 veces el valor
+% de la mediana.
 figure
 e_d = PVD./(VVD-v0_d);
 E_max = ones(length(t),1) .* e_max_d;
@@ -136,9 +143,9 @@ plot(t, E_min); hold on;
 text(t(1), e_max_d,['Emax:' num2str(e_max_d)])
 plot(t, E_max); hold on;
 c_d = 1./e_d;
-avg_c = median(c_d);
+median_c = median(c_d);
 for i=1:length(c_d)
-    if c_d(i) > 10* avg_c
+    if c_d(i) > 10* median_c
         c_d(i) = c_d(i-1);
     end
 end
@@ -156,9 +163,9 @@ plot(t, E_min); hold on;
 text(t(1), e_max_i,['Emax:' num2str(e_max_i)])
 plot(t, E_max); hold on;
 c_i = 1./e_i;
-avg_c = median(c_i);
+median_c = median(c_i);
 for i=1:length(c_i)
-    if c_i(i) > 10* avg_c
+    if c_i(i) > 10* median_c
         c_i(i) = c_i(i-1);
     end
 end
@@ -167,6 +174,12 @@ xlabel('t (s)')
 ylabel(h(1),'e (mmHg/ml)')
 ylabel(h(2),'c (ml/mmHg)')
 title('Elastancia del ventrículo izquierdo.')
+
+%% Cálculo del acoplamiento ventrículo-arterial.
+% Se calcula Emax para el ventrículo izquierdo y luego Ea. Se grafica ambos
+% y se observa que a lo largo de los latidos los valores se acercan
+% bastante. Si llegaran a ser iguales, se produciría un acoplamiento
+% óptimo.
 
 figure
 e_max = pfs_i./(vfs_i - v0_i);
