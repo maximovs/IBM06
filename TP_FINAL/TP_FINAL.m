@@ -94,6 +94,7 @@ q_max = max(avg_qao_beat);
 
 figure
 [~, locations_max] = findpeaks(avg_pao_beat, 'minpeakheight', 0.9*max(avg_pao_beat));
+location_p_max = locations_max(1);
 diastolic_start = get_next_min(avg_pao_beat, locations_max(1));
 t2_3_d = round(diastolic_start + (length(avg_pao_beat) - diastolic_start)/3);
 plot(0:1/fs:(length(avg_pao_beat)-1)/fs, avg_pao_beat,'r'); hold on;
@@ -163,4 +164,47 @@ plot(0:1/fs:(length(avg_pao_beat)-1)/fs, avg_pao_beat,'r');
 text(diastolic_start/fs, pp_calculated_pressure(diastolic_start),'\leftarrow PPM')
 text(diastolic_start/fs, dt_calculated_pressure(diastolic_start),'\leftarrow DTM')
 
+%% Metodología propuesta por nosotros original
+% En lugar de partir las funciones en sístole y diástole tomando en cuenta
+% el punto medio como el inicio de diástole, se puede aproximar tomando
+% como punto medio la presión máxima. Si bien esto no resultaría en una
+% aproximación fisiológica certera, la utilizada previamente tampoco lo es
+% y permite una aproximación mayor a la presión en función del tiempo
+% original.
 
+[modified_pulse_pressure_compliance, modified_pulse_pressure_p_fs, modified_pulse_pressue_pp_d] = get_compliance_via_ppm(avg_pao_beat, r, compliance, location_p_max, fs, q_max, p_diastolic_end, pp_a)
+fprintf('Modificación original propuesta de presión de pulso: Pfs = %f, Compliance = %f, PPd = %f\n', modified_pulse_pressure_p_fs, modified_pulse_pressure_compliance, modified_pulse_pressue_pp_d)
+
+modified_t_s = 0:1/fs:(location_p_max-1)/fs;
+modified_t_d = location_p_max/fs:1/fs:(length(avg_pao_beat)-1)/fs;
+% método propuesto por nosotros
+modified_pp_p_sis = (p_diastolic_end - r*q_max)*exp(-modified_t_s/(modified_pulse_pressure_compliance*r)) + r*q_max;
+a = modified_pp_p_sis(end);
+modified_pp_p_dia = a*exp(-(modified_t_d - modified_t_d(1))/(modified_pulse_pressure_compliance*r));
+modified_pp_calculated_pressure = [modified_pp_p_sis modified_pp_p_dia];
+
+%% Metodología propuesta por nosotros alternativa
+% A diferencia de nuestra propuesta original, por medio de ensayo y error
+% descubrimos que tomando el fin de sístole como 3/7 del ciclo, se obtiene
+% una función muy aproximada a la original.
+sistolic_end = ceil(3*length(avg_pao_beat)/7);
+[alternative_pulse_pressure_compliance, alternative_pulse_pressure_p_fs, alternative_pulse_pressue_pp_d] = get_compliance_via_ppm(avg_pao_beat, r, compliance, sistolic_end, fs, q_max, p_diastolic_end, pp_a);
+fprintf('Modificación alternativa propuesta de presión de pulso: Pfs = %f, Compliance = %f, PPd = %f\n', alternative_pulse_pressure_p_fs, alternative_pulse_pressure_compliance, alternative_pulse_pressue_pp_d)
+
+alternative_t_s = 0:1/fs:(sistolic_end-1)/fs;
+alternative_t_d = sistolic_end/fs:1/fs:(length(avg_pao_beat)-1)/fs;
+% método alternativo propuesto por nosotros
+alternative_pp_p_sis = (p_diastolic_end - r*q_max)*exp(-alternative_t_s/(alternative_pulse_pressure_compliance*r)) + r*q_max;
+a = alternative_pp_p_sis(end);
+alternative_pp_p_dia = a*exp(-(alternative_t_d - alternative_t_d(1))/(alternative_pulse_pressure_compliance*r));
+alternative_pp_calculated_pressure = [alternative_pp_p_sis alternative_pp_p_dia];
+figure
+plot([t_s t_d], pp_calculated_pressure); hold on;
+plot([t_s t_d], dt_calculated_pressure); hold on;
+plot([t_s t_d], modified_pp_calculated_pressure); hold on;
+plot([t_s t_d], alternative_pp_calculated_pressure); hold on;
+plot(0:1/fs:(length(avg_pao_beat)-1)/fs, avg_pao_beat,'r');
+text(diastolic_start/fs, pp_calculated_pressure(diastolic_start),'\leftarrow PPM')
+text(diastolic_start/fs, dt_calculated_pressure(diastolic_start),'\leftarrow DTM')
+text(location_p_max/fs, modified_pp_calculated_pressure(location_p_max),'\leftarrow MPPM')
+text(sistolic_end/fs, alternative_pp_calculated_pressure(sistolic_end),'\leftarrow APPM')
