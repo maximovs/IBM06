@@ -6,8 +6,6 @@
 [Qao, Pao] = import_qao_and_pao();
 
 
-
-
 %% Se filtra Pao y Qao
 
 Pao = avg_filter(5, 3, Pao);
@@ -100,14 +98,14 @@ t2_3_d = round(diastolic_start + (length(avg_pao_beat) - diastolic_start)/3);
 plot(0:1/fs:(length(avg_pao_beat)-1)/fs, avg_pao_beat,'r'); hold on;
 plot(t2_3_d/fs, avg_pao_beat(t2_3_d), '*');
 plot(diastolic_start/fs, avg_pao_beat(diastolic_start), 'x');
-text(diastolic_start/fs, avg_pao_beat(diastolic_start),'\leftarrow Fin de diástole')
+text(diastolic_start/fs, avg_pao_beat(diastolic_start),'\leftarrow Inicio de diástole')
 text(t2_3_d/fs, avg_pao_beat(t2_3_d),'\leftarrow 1/3 de diástole')
 title('Presión aórtica de latido promedio')
 xlabel('t(s)')
 ylabel('Presión (mmHg)')
 
 pp_a = max(avg_pao_beat) - min(avg_pao_beat);
-fprintf('Original: Pfs_a = %f, Pfd_a = %f, Rp = %f, Qmax = %f, Presión de pulso (PPa) = %f\n', max(avg_pao_beat), min(avg_pao_beat), r, q_max, pp_a);
+fprintf('Original: Pfs_a = %f, Pfd_a = %f, Rp = %f, Qmax = %f, Presión de pulso (PPa) = %f, Presión media: %f\n', max(avg_pao_beat), min(avg_pao_beat), r, q_max, pp_a, mean(avg_pao_beat));
 
 %% Se calcula la compliance mediante el método de tiempo de decaimiento.
 
@@ -163,7 +161,9 @@ plot([t_s t_d], dt_calculated_pressure); hold on;
 plot(0:1/fs:(length(avg_pao_beat)-1)/fs, avg_pao_beat,'r');
 text(diastolic_start/fs, pp_calculated_pressure(diastolic_start),'\leftarrow PPM')
 text(diastolic_start/fs, dt_calculated_pressure(diastolic_start),'\leftarrow DTM')
-
+title('Comparación de ambos métodos utilizados en el paper')
+xlabel('t(s)')
+ylabel('Presión (mmHg)')
 %% Metodología propuesta por nosotros original
 % En lugar de partir las funciones en sístole y diástole tomando en cuenta
 % el punto medio como el inicio de diástole, se puede aproximar tomando
@@ -172,7 +172,7 @@ text(diastolic_start/fs, dt_calculated_pressure(diastolic_start),'\leftarrow DTM
 % y permite una aproximación mayor a la presión en función del tiempo
 % original.
 
-[modified_pulse_pressure_compliance, modified_pulse_pressure_p_fs, modified_pulse_pressue_pp_d] = get_compliance_via_ppm(avg_pao_beat, r, compliance, location_p_max, fs, q_max, p_diastolic_end, pp_a)
+[modified_pulse_pressure_compliance, modified_pulse_pressure_p_fs, modified_pulse_pressue_pp_d] = get_compliance_via_ppm(avg_pao_beat, r, compliance, location_p_max, fs, q_max, p_diastolic_end, pp_a);
 fprintf('Modificación original propuesta de presión de pulso: Pfs = %f, Compliance = %f, PPd = %f\n', modified_pulse_pressure_p_fs, modified_pulse_pressure_compliance, modified_pulse_pressue_pp_d)
 
 modified_t_s = 0:1/fs:(location_p_max-1)/fs;
@@ -208,3 +208,62 @@ text(diastolic_start/fs, pp_calculated_pressure(diastolic_start),'\leftarrow PPM
 text(diastolic_start/fs, dt_calculated_pressure(diastolic_start),'\leftarrow DTM')
 text(location_p_max/fs, modified_pp_calculated_pressure(location_p_max),'\leftarrow MPPM')
 text(sistolic_end/fs, alternative_pp_calculated_pressure(sistolic_end),'\leftarrow APPM')
+title('Comparación entre los métodos del paper y las alternativas propuestas')
+xlabel('t(s)')
+ylabel('Presión (mmHg)')
+%% Metodología propuesta por nosotros alternativa en otra señal
+% A diferencia de nuestra propuesta original, por medio de ensayo y error
+% descubrimos que tomando el fin de sístole como 3/7 del ciclo, se obtiene
+% una función muy aproximada a la original.
+[avg_pao_beat2, avg_qao_beat2, r2] = get_TP_3_data();
+pp_a2 = max(avg_pao_beat2) - min(avg_pao_beat2);
+sistolic_end = ceil(3*length(avg_pao_beat2)/7);
+[alternative_pulse_pressure_compliance2, alternative_pulse_pressure_p_fs2, alternative_pulse_pressue_pp_d2] = get_compliance_via_ppm(avg_pao_beat2, r2, compliance, sistolic_end, fs, max(avg_qao_beat2), min(avg_pao_beat2), pp_a2);
+fprintf('Modificación alternativa propuesta de presión de pulso: Pfs = %f, Compliance = %f, PPd = %f\n', alternative_pulse_pressure_p_fs2, alternative_pulse_pressure_compliance2, alternative_pulse_pressue_pp_d2)
+
+alternative_t_s2 = 0:1/fs:(sistolic_end-1)/fs;
+alternative_t_d2 = sistolic_end/fs:1/fs:(length(avg_pao_beat2)-1)/fs;
+% método alternativo propuesto por nosotros
+alternative_pp_p_sis2 = (min(avg_pao_beat2) - r2*max(avg_qao_beat2))*exp(-alternative_t_s2/(alternative_pulse_pressure_compliance2*r2)) + r2*max(avg_qao_beat2);
+a = alternative_pp_p_sis2(end);
+alternative_pp_p_dia2 = a*exp(-(alternative_t_d2 - alternative_t_d2(1))/(alternative_pulse_pressure_compliance2*r2));
+alternative_pp_calculated_pressure2 = [alternative_pp_p_sis2 alternative_pp_p_dia2];
+
+figure
+plot([alternative_t_s2 alternative_t_d2], alternative_pp_calculated_pressure2); hold on;
+plot(0:1/fs:(length(avg_pao_beat2)-1)/fs, avg_pao_beat2,'r');
+text(sistolic_end/fs, alternative_pp_calculated_pressure2(sistolic_end),'\leftarrow APPM')
+title('Análisis del resultado con la alternativa propuesta en otro conjunto de datos')
+xlabel('t(s)')
+ylabel('Presión (mmHg)')
+
+%% Pruebas en señales de humanos provistas por la cátedra
+%Se escoge 2 sujetos del conjunto de señales de presión y flujo y se los
+%utiliza para correr las mismas pruebas que con el resto de las señales
+%utilizadas previamente.
+
+load('AORTA_ROOT_physio.mat');
+subject2 = AORTA_ROOT_PHYSIO{1,2}.ONE_CYCLE(:,2:3);
+subject4 = AORTA_ROOT_PHYSIO{1,4}.ONE_CYCLE(:,2:3);
+%Se normaliza los datos para que mantengan las unidades utilizadas.
+Pao2 = double(subject2(:,1)*0.007501);
+Pao4 = double(subject4(:,1)*0.007501);
+Qao2 = double(subject2(:,2)*1000*60);
+Qao4 = double(subject4(:,2)*1000*60);
+fs_2 = 1000;
+
+calculate_all_methods_and_variables(Pao2, Qao2, fs_2,'Subject 2');
+calculate_all_methods_and_variables(Pao4, Qao4, fs_2, 'Subject 4');
+
+%% Prueba con la señal utilizada por el paper
+%Se intenta aproximar la función utilizada por el paper a partir de los
+%gráficos presentados por el mismo. Una vez obtenidos los puntos más
+%importantes, se utiliza una función para normalizarlo y muestrearla a
+%250Hz. Con estos resultados se ejecutan todas las pruebas que fueron
+%ejecutadas en el resto de las funciones.
+
+load('flow_and_pressure_paper.mat')
+Pao_paper = Ppaper(:,2);
+Qao_paper = Qpaper(:,2);
+calculate_all_methods_and_variables(Pao_paper, Qao_paper, fs, 'Paper data');
+

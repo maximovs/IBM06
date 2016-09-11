@@ -5,6 +5,10 @@ compliance = initial_compliance;
 last_compliance = compliance;
 delta_c = 0.001;
 distance = (get_wk2_pp(avg_pao_beat, r, compliance, sistolic_end, fs, q_max, p_diastolic_end) - pp_a)/pp_a;
+next_distance = (get_wk2_pp(avg_pao_beat, r, compliance - delta_c, sistolic_end, fs, q_max, p_diastolic_end) - pp_a)/pp_a;
+if abs(next_distance) > abs(distance)
+    delta_c = delta_c * -1;
+end
 last_distance = abs(distance) + 1;
 while abs(distance) < abs(last_distance)
     last_compliance = compliance;
